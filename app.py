@@ -1,60 +1,52 @@
 import streamlit as st
-from difflib import unified_diff
-import re
+import requests
 
-st.set_page_config(page_title="Multi-Language Code Tutor", layout="wide")
-st.title("👨‍💻 AI Code Correction Tutor (C, C++, Java, Python)")
+# Title
+st.title("🧠 AI Code Tutor + JDoodle Online Compiler")
+st.markdown("Write code, select language, and click Compile to see output instantly!")
 
-language = st.selectbox("Select Programming Language", ["Python", "C", "C++", "Java"])
-user_code = st.text_area("🔤 Paste your code here", height=200)
+# JDoodle credentials (replace with your real credentials)
+client_id = "d4127663132295c8af4c834918ba8457"
+client_secret = "fc80b85776bed16836556271e33cd911a497baa3f275b6c6e572eedbdb1f11b2"
 
-# Placeholder rule-based correction function
-def correct_code(code, lang):
-    if lang == "Python":
-        corrected = re.sub(r"print (.+)", r"print(\1)", code)
-        corrected = re.sub(r"def (\w+)\((.*)\):", r"def \1(\2):", corrected)
-    elif lang == "C":
-        corrected = "#include <stdio.h>\n\n" + code
-        corrected = corrected.replace("main()", "int main()")
-        if "return" not in corrected:
-            corrected += "\nreturn 0;"
-    elif lang == "C++":
-        corrected = "#include <iostream>\nusing namespace std;\n\n" + code
-        corrected = corrected.replace("main()", "int main()")
-        if "return" not in corrected:
-            corrected += "\nreturn 0;"
-    elif lang == "Java":
-        corrected = (
-            "public class Main {\npublic static void main(String[] args) {\n" +
-            code + "\n}\n}"
-        )
-    else:
-        corrected = code
-    return corrected
+# Supported languages and JDoodle language codes
+languages = {
+    "Python": {"language": "python3", "versionIndex": "4"},
+    "C": {"language": "c", "versionIndex": "5"},
+    "C++": {"language": "cpp", "versionIndex": "5"},
+    "Java": {"language": "java", "versionIndex": "4"},
+}
 
-if st.button("✅ Show Corrected Code"):
+# Select language
+selected_lang = st.selectbox("Select Language", list(languages.keys()))
+
+# Text area for code
+user_code = st.text_area("✍️ Enter your code below:", height=300)
+
+# Compile button
+if st.button("🚀 Compile & Run"):
     if not user_code.strip():
-        st.warning("Please enter some code.")
+        st.warning("Please enter some code to compile.")
     else:
-        corrected_code = correct_code(user_code, language)
+        # Build request
+        payload = {
+            "clientId": client_id,
+            "clientSecret": client_secret,
+            "script": user_code,
+            "language": languages[selected_lang]["language"],
+            "versionIndex": languages[selected_lang]["versionIndex"]
+        }
 
-        col1, col2 = st.columns(2)
+        try:
+            # Send request to JDoodle
+            res = requests.post("https://api.jdoodle.com/v1/execute", json=payload)
+            result = res.json()
 
-        with col1:
-            st.subheader("📥 Your Code")
-            st.code(user_code, language.lower())
-
-        with col2:
-            st.subheader("✅ Corrected Code")
-            st.code(corrected_code, language.lower())
-
-        # Show diff
-        diff = unified_diff(
-            user_code.strip().splitlines(),
-            corrected_code.strip().splitlines(),
-            fromfile="Your Code",
-            tofile="Corrected Code",
-            lineterm=""
-        )
-        st.subheader("🔍 Difference")
-        st.code("\n".join(diff))
+            # Show result
+            if "output" in result:
+                st.subheader("🖥️ Output:")
+                st.code(result["output"])
+            else:
+                st.error("Something went wrong. Check API credentials or JDoodle limits.")
+        except Exception as e:
+            st.error(f"Error calling JDoodle: {e}")
