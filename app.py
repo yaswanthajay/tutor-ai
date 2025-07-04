@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Title
-st.title("🧠 AI Code Tutor + JDoodle Online Compiler")
+st.title("AI Code Tutor + JDoodle Online Compiler")
 st.markdown("Write code, select language, and click Compile to see output instantly!")
 
 # JDoodle credentials (replace with your real credentials)
@@ -21,10 +21,10 @@ languages = {
 selected_lang = st.selectbox("Select Language", list(languages.keys()))
 
 # Text area for code
-user_code = st.text_area("✍️ Enter your code below:", height=300)
+user_code = st.text_area("Enter your code below:", height=300)
 
 # Compile button
-if st.button("🚀 Compile & Run"):
+if st.button("Compile & Run"):
     if not user_code.strip():
         st.warning("Please enter some code to compile.")
     else:
