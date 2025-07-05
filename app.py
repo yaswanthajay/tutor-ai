@@ -57,26 +57,26 @@ def render_audio(file_path):
 
 # === Streamlit UI ===
 st.set_page_config(page_title="AI Code Tutor + Voice", layout="centered")
-st.title("💡 AI Code Tutor + JDoodle Compiler 🔊")
+st.title(" AI Code Tutor + JDoodle Compiler")
 
 selected_lang = st.selectbox("Choose Language", list(languages.keys()))
 user_code = st.text_area("Write Your Code", height=300)
 
-if st.button("🚀 Compile & Run"):
+if st.button(" Compile & Run"):
     if not user_code.strip():
         st.warning("⚠️ Please enter some code.")
     else:
         corrected_code, ai_tip = simple_correction(user_code, selected_lang)
 
         if corrected_code != user_code:
-            st.subheader("🧠 AI Correction Applied:")
+            st.subheader("AI Correction Applied:")
             st.code(corrected_code, language=selected_lang.lower())
             if ai_tip:
                 st.info(f"💬 {ai_tip}")
                 file_path = text_to_speech(ai_tip)
                 render_audio(file_path)
         else:
-            st.success("✅ No basic syntax issues detected.")
+            st.success("No basic syntax issues detected.")
 
         payload = {
             "clientId": client_id,
@@ -89,7 +89,7 @@ if st.button("🚀 Compile & Run"):
         try:
             res = requests.post("https://api.jdoodle.com/v1/execute", json=payload)
             result = res.json()
-            st.subheader("📤 Output:")
+            st.subheader("Output:")
             st.code(result.get("output", "No output."))
         except Exception as e:
             st.error(f"JDoodle API Error: {e}")
