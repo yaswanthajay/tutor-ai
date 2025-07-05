@@ -1,11 +1,11 @@
 import streamlit as st
 import requests
 from gtts import gTTS
-import os
 import uuid
 import base64
+import os
 
-# ---------------- CONFIG ----------------
+# === JDoodle API credentials ===
 client_id = "d4127663132295c8af4c834918ba8457"
 client_secret = "fc80b85776bed16836556271e33cd911a497baa3f275b6c6e572eedbdb1f11b2"
 
@@ -16,29 +16,28 @@ languages = {
     "Java": {"language": "java", "versionIndex": "4"},
 }
 
-# ---------------- UTIL FUNCTION ----------------
+# === Helper: Simple Correction Logic ===
 def simple_correction(code, lang):
     if lang == "Python":
         if "pritn" in code:
             return code.replace("pritn", "print"), "Replaced 'pritn' with 'print'"
-        if "def main:" in code:
-            return code.replace("def main:", "def main():"), "Added missing brackets in 'def main'"
     elif lang == "C":
         if "main)" in code and "int main()" not in code:
-            return code.replace("main)", "main(void)"), "Changed 'main)' to 'main(void)'"
+            return code.replace("main)", "main(void)"), "Fixed function declaration"
     elif lang == "C++":
-        if "include <" not in code:
-            return "#include <iostream>\nusing namespace std;\n" + code, "Added required headers"
+        if "#include" not in code:
+            return "#include <iostream>\nusing namespace std;\n" + code, "Added C++ header"
     elif lang == "Java":
         if "System.out.println(" not in code:
-            java_code = """public class Main {
+            boiler = """public class Main {
     public static void main(String[] args) {
         System.out.println("Fix Me");
     }
 }"""
-            return java_code, "Added missing Java boilerplate"
+            return boiler, "Added missing Java main class"
     return code, ""
 
+# === Helper: Text-to-Speech ===
 def text_to_speech(text):
     filename = f"voice_{uuid.uuid4()}.mp3"
     tts = gTTS(text=text, lang='en')
@@ -56,28 +55,28 @@ def render_audio(file_path):
         """
         st.markdown(audio_html, unsafe_allow_html=True)
 
-# ---------------- STREAMLIT UI ----------------
-st.set_page_config(page_title="AI Code Tutor + Compiler + Voice", layout="centered")
-st.title("💡 AI Code Tutor + JDoodle Compiler + 🔊 Voice Error Helper")
+# === Streamlit UI ===
+st.set_page_config(page_title="AI Code Tutor + Voice", layout="centered")
+st.title("💡 AI Code Tutor + JDoodle Compiler 🔊")
 
-selected_lang = st.selectbox("🧠 Select Programming Language", list(languages.keys()))
-user_code = st.text_area("✍️ Enter Your Code", height=300)
+selected_lang = st.selectbox("Choose Language", list(languages.keys()))
+user_code = st.text_area("Write Your Code", height=300)
 
 if st.button("🚀 Compile & Run"):
     if not user_code.strip():
-        st.warning("⚠️ Please enter code to run.")
+        st.warning("⚠️ Please enter some code.")
     else:
         corrected_code, ai_tip = simple_correction(user_code, selected_lang)
-        
+
         if corrected_code != user_code:
-            st.subheader("🤖 AI Suggestion:")
+            st.subheader("🧠 AI Correction Applied:")
             st.code(corrected_code, language=selected_lang.lower())
             if ai_tip:
-                st.info("🗣️ Voice Explanation:")
+                st.info(f"💬 {ai_tip}")
                 file_path = text_to_speech(ai_tip)
                 render_audio(file_path)
         else:
-            st.success("✅ No basic syntax issues found.")
+            st.success("✅ No basic syntax issues detected.")
 
         payload = {
             "clientId": client_id,
@@ -90,10 +89,7 @@ if st.button("🚀 Compile & Run"):
         try:
             res = requests.post("https://api.jdoodle.com/v1/execute", json=payload)
             result = res.json()
-            if "output" in result:
-                st.subheader("📤 Output:")
-                st.code(result["output"])
-            else:
-                st.error("❌ JDoodle Error: Check API credentials or quota.")
+            st.subheader("📤 Output:")
+            st.code(result.get("output", "No output."))
         except Exception as e:
-            st.error(f"💥 Error calling JDoodle API: {e}")
+            st.error(f"JDoodle API Error: {e}")
